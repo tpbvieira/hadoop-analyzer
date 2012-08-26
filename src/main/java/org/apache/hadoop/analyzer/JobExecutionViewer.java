@@ -13,10 +13,11 @@ import org.apache.hadoop.tools.rumen.LoggedTask;
 import org.apache.hadoop.tools.rumen.LoggedTaskAttempt;
 import org.codehaus.jackson.map.ObjectMapper;
 
+//TODO verificar casos com valor null, se representam inconsistência ou não
+
 public class JobExecutionViewer {
 	
-//	private static final String fileName = "/home/thiago/tmp/rumen/tmp/experiment01-job-trace.json";
-	private static final String fileName = "/home/thiago/tmp/rumen/tmp/tmp-job-trace.json";
+	private static final String fileName = "/home/thiago/tmp/experiment/06-job-trace.json";
 
 	public static void main(String... args) throws Exception {
 		ObjectMapper mapper = new ObjectMapper();		
@@ -28,6 +29,7 @@ public class JobExecutionViewer {
 	}
 
 	public static void jobPrettyPrint(LoggedJob job){
+		System.out.println("### Name: " + job.getJobName());
 		System.out.println("### Id: " + job.getJobID());
 		System.out.println("### Type: " + job.getJobtype());
 		System.out.println("### Priority: " + job.getPriority());
@@ -79,7 +81,7 @@ public class JobExecutionViewer {
 		System.out.println("### MapTasks:");
 		List<LoggedTask> mapTasks = job.getMapTasks();
 		if(mapTasks != null){
-			for (LoggedTask mapTask : mapTasks) {
+			for (LoggedTask mapTask : mapTasks) {				
 				System.out.println("ID: " + mapTask.getTaskID());			
 				System.out.println("Type: " + mapTask.getTaskType());
 				System.out.println("Status: " + mapTask.getTaskStatus());
@@ -106,15 +108,15 @@ public class JobExecutionViewer {
 						System.out.println(" RunTime: " + (mapAttempt.getFinishTime() - mapAttempt.getStartTime()));
 						if(mapAttempt.getLocation() !=null)
 							System.out.println(" ExecutionLocation: " + mapAttempt.getLocation().getLayers());						
-						System.out.println(" CombineInputRecords: " + mapAttempt.getCombineInputRecords());
-						System.out.println(" HdfsBytesRead: " + mapAttempt.getHdfsBytesRead());
-						System.out.println(" HdfsBytesWritten: " + mapAttempt.getHdfsBytesWritten());
-						System.out.println(" FileBytesRead: " + mapAttempt.getFileBytesRead());
-						System.out.println(" FileBytesWritten: " + mapAttempt.getFileBytesWritten());
-						System.out.println(" MapInputBytes: " + mapAttempt.getMapInputBytes());
 						System.out.println(" MapInputRecords: " + mapAttempt.getMapInputRecords());
-						System.out.println(" MapOutputBytes: " + mapAttempt.getMapOutputBytes());
+						System.out.println(" MapInputBytes: " + mapAttempt.getMapInputBytes());						
+						System.out.println(" HdfsBytesRead: " + mapAttempt.getHdfsBytesRead());
+						System.out.println(" FileBytesRead: " + mapAttempt.getFileBytesRead());						
 						System.out.println(" MapOutputRecords: " + mapAttempt.getMapOutputRecords());
+						System.out.println(" MapOutputBytes: " + mapAttempt.getMapOutputBytes());						
+						System.out.println(" HdfsBytesWritten: " + mapAttempt.getHdfsBytesWritten());						
+						System.out.println(" FileBytesWritten: " + mapAttempt.getFileBytesWritten());
+						System.out.println(" CombineInputRecords: " + mapAttempt.getCombineInputRecords());						
 						System.out.println(" ReduceInputGroups: " + mapAttempt.getReduceInputGroups());
 						System.out.println(" ReduceOutputRecords: " + mapAttempt.getReduceOutputRecords());
 						System.out.println(" ReduceShuffleBytes: " + mapAttempt.getReduceShuffleBytes());						
@@ -159,21 +161,21 @@ public class JobExecutionViewer {
 						System.out.println(" RunTime: " + (reduceAttempt.getFinishTime() - reduceAttempt.getStartTime()));
 						if(reduceAttempt.getLocation() !=null)
 							System.out.println(" ExecutionLocation: " + reduceAttempt.getLocation().getLayers());						
-						System.out.println(" CombineInputRecords: " + reduceAttempt.getCombineInputRecords());
-						System.out.println(" HdfsBytesRead: " + reduceAttempt.getHdfsBytesRead());
-						System.out.println(" HdfsBytesWritten: " + reduceAttempt.getHdfsBytesWritten());
-						System.out.println(" FileBytesRead: " + reduceAttempt.getFileBytesRead());
-						System.out.println(" FileBytesWritten: " + reduceAttempt.getFileBytesWritten());
-						System.out.println(" MapInputBytes: " + reduceAttempt.getMapInputBytes());
 						System.out.println(" MapInputRecords: " + reduceAttempt.getMapInputRecords());
-						System.out.println(" MapOutputBytes: " + reduceAttempt.getMapOutputBytes());
+						System.out.println(" MapInputBytes: " + reduceAttempt.getMapInputBytes());						
+						System.out.println(" HdfsBytesRead: " + reduceAttempt.getHdfsBytesRead());
+						System.out.println(" FileBytesRead: " + reduceAttempt.getFileBytesRead());						
 						System.out.println(" MapOutputRecords: " + reduceAttempt.getMapOutputRecords());
+						System.out.println(" MapOutputBytes: " + reduceAttempt.getMapOutputBytes());						
+						System.out.println(" HdfsBytesWritten: " + reduceAttempt.getHdfsBytesWritten());						
+						System.out.println(" FileBytesWritten: " + reduceAttempt.getFileBytesWritten());
+						System.out.println(" CombineInputRecords: " + reduceAttempt.getCombineInputRecords());						
 						System.out.println(" ReduceInputGroups: " + reduceAttempt.getReduceInputGroups());
 						System.out.println(" ReduceOutputRecords: " + reduceAttempt.getReduceOutputRecords());
 						System.out.println(" ReduceShuffleBytes: " + reduceAttempt.getReduceShuffleBytes());						
 						System.out.println(" ShuffleFinished: " + reduceAttempt.getShuffleFinished());
 						System.out.println(" SortFinished: " + reduceAttempt.getSortFinished());
-						System.out.println(" SpilledRecords: " + reduceAttempt.getSpilledRecords());
+						System.out.println(" SpilledRecords: " + reduceAttempt.getSpilledRecords());				
 						System.out.println(" -");
 					}
 				}
@@ -212,21 +214,21 @@ public class JobExecutionViewer {
 						System.out.println(" RunTime: " + (otherAttempt.getFinishTime() - otherAttempt.getStartTime()));
 						if(otherAttempt.getLocation() !=null)
 							System.out.println(" ExecutionLocations: " + otherAttempt.getLocation().getLayers());						
-						System.out.println(" CombineInputRecords: " + otherAttempt.getCombineInputRecords());
-						System.out.println(" HdfsBytesRead: " + otherAttempt.getHdfsBytesRead());
-						System.out.println(" HdfsBytesWritten: " + otherAttempt.getHdfsBytesWritten());
-						System.out.println(" FileBytesRead: " + otherAttempt.getFileBytesRead());
-						System.out.println(" FileBytesWritten: " + otherAttempt.getFileBytesWritten());
-						System.out.println(" MapInputBytes: " + otherAttempt.getMapInputBytes());
 						System.out.println(" MapInputRecords: " + otherAttempt.getMapInputRecords());
-						System.out.println(" MapOutputBytes: " + otherAttempt.getMapOutputBytes());
+						System.out.println(" MapInputBytes: " + otherAttempt.getMapInputBytes());						
+						System.out.println(" HdfsBytesRead: " + otherAttempt.getHdfsBytesRead());
+						System.out.println(" FileBytesRead: " + otherAttempt.getFileBytesRead());						
 						System.out.println(" MapOutputRecords: " + otherAttempt.getMapOutputRecords());
+						System.out.println(" MapOutputBytes: " + otherAttempt.getMapOutputBytes());						
+						System.out.println(" HdfsBytesWritten: " + otherAttempt.getHdfsBytesWritten());						
+						System.out.println(" FileBytesWritten: " + otherAttempt.getFileBytesWritten());
+						System.out.println(" CombineInputRecords: " + otherAttempt.getCombineInputRecords());						
 						System.out.println(" ReduceInputGroups: " + otherAttempt.getReduceInputGroups());
 						System.out.println(" ReduceOutputRecords: " + otherAttempt.getReduceOutputRecords());
 						System.out.println(" ReduceShuffleBytes: " + otherAttempt.getReduceShuffleBytes());						
 						System.out.println(" ShuffleFinished: " + otherAttempt.getShuffleFinished());
 						System.out.println(" SortFinished: " + otherAttempt.getSortFinished());
-						System.out.println(" SpilledRecords: " + otherAttempt.getSpilledRecords());
+						System.out.println(" SpilledRecords: " + otherAttempt.getSpilledRecords());				
 						System.out.println(" -");
 					}
 				}
