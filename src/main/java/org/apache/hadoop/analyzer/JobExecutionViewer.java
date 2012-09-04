@@ -17,7 +17,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class JobExecutionViewer {
 	
-	private static final String fileName = "/home/thiago/tmp/experiment/06-job-trace.json";
+	private static final String fileName = "/home/thiago/tmp/experiment/1st_experiment/traces/30-job-trace.json";
 
 	public static void main(String... args) throws Exception {
 		ObjectMapper mapper = new ObjectMapper();		

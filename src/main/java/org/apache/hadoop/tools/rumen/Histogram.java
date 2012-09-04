@@ -31,7 +31,7 @@ import java.util.TreeMap;
  * distribution function
  * 
  */
-class Histogram implements Iterable<Map.Entry<Long, Long>> {
+public class Histogram implements Iterable<Map.Entry<Long, Long>> {
   private TreeMap<Long, Long> content = new TreeMap<Long, Long>();
 
   private String name;

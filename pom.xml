@@ -61,5 +61,10 @@
 			<artifactId>commons-math</artifactId>
 			<version>2.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.rosuda.JRI</groupId>
+			<artifactId>jri</artifactId>
+			<version>0.5.5</version>
+		</dependency>
 	</dependencies>
 </project>

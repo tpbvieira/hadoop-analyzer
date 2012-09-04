@@ -809,8 +809,7 @@ public class HadoopLogsAnalyzer extends Configured implements Tool {
           attemptsInCurrentJob = new HashMap<String, LoggedTaskAttempt>();
 
           // initialize all the per-job statistics gathering places
-          successfulMapAttemptTimes =
-              new Histogram[ParsedHost.numberOfDistances() + 1];
+          successfulMapAttemptTimes = new Histogram[ParsedHost.numberOfDistances() + 1];
           for (int i = 0; i < successfulMapAttemptTimes.length; ++i) {
             successfulMapAttemptTimes[i] = new Histogram();
           }
@@ -1621,14 +1620,11 @@ public class HadoopLogsAnalyzer extends Configured implements Tool {
       }
 
       // add digest info to the job
-      jobBeingTraced
-          .setSuccessfulMapAttemptCDFs(mapCDFArrayList(successfulMapAttemptTimes));
-      jobBeingTraced
-          .setFailedMapAttemptCDFs(mapCDFArrayList(failedMapAttemptTimes));
+      jobBeingTraced.setSuccessfulMapAttemptCDFs(mapCDFArrayList(successfulMapAttemptTimes));
+      jobBeingTraced.setFailedMapAttemptCDFs(mapCDFArrayList(failedMapAttemptTimes));
 
       LoggedDiscreteCDF discCDF = new LoggedDiscreteCDF();
-      discCDF
-          .setCDF(successfulReduceAttemptTimes, attemptTimesPercentiles, 100);
+      discCDF.setCDF(successfulReduceAttemptTimes, attemptTimesPercentiles, 100);
       jobBeingTraced.setSuccessfulReduceAttemptCDF(discCDF);
 
       discCDF = new LoggedDiscreteCDF();

@@ -47,7 +47,7 @@ public class LoggedDiscreteCDF implements DeepCompare {
    */
   long maximum = Long.MAX_VALUE;
 
-  void setCDF(Histogram data, int[] steps, int modulus) {
+  public void setCDF(Histogram data, int[] steps, int modulus) {
 
     numberValues = data.getTotalCount();
     long[] CDF = data.getCDF(modulus, steps);
