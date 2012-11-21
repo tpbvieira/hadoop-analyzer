@@ -1,4 +1,4 @@
-package org.apache.hadoop.analyzer;
+package org.apache.hadoop.view;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class JobExecutionViewer {
 
-	private static final String fileName = "/home/thiago/tmp/experiment/2nd_experiment/20x/traces/28-job-trace.json";
+	private static final String fileName = "/home/thiago/tmp/experiment/2nd_experiment/20x/traces/02-job-trace.json";
 
 	public static void main(String... args) throws Exception {
 		ObjectMapper mapper = new ObjectMapper();		
