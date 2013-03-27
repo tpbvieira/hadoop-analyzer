@@ -2,6 +2,8 @@ package org.apache.hadoop.types;
 
 import java.util.Map;
 
+import org.apache.hadoop.analyzer.ExecutionAnalyzer.Consts;
+
 public class GraphParameters {
 
 	private int xMin;
@@ -15,7 +17,7 @@ public class GraphParameters {
 	
 	private Map<Integer,String> labels;
 	
-	private Map<Integer,Integer> constants;
+	private Map<Consts,Integer> constants;
 	
 	public GraphParameters(int xMin, int xMax, int yMin, int yMax){
 		this.xMin = xMin;
@@ -24,7 +26,7 @@ public class GraphParameters {
 		this.yMax = yMax;		
 	}
 	
-	public GraphParameters(int xMin, int xMax, int yMin, int yMax, Map<Integer,Integer> constants){
+	public GraphParameters(int xMin, int xMax, int yMin, int yMax, Map<Consts,Integer> constants){
 		this.xMin = xMin;
 		this.xMax = xMax;
 		this.yMin = yMin;
@@ -32,7 +34,7 @@ public class GraphParameters {
 		this.constants = constants;
 	}
 	
-	public GraphParameters(int xMin, int xMax, int yMin, int yMax, int yMin2, int yMax2, Map<Integer,Integer> constants){
+	public GraphParameters(int xMin, int xMax, int yMin, int yMax, int yMin2, int yMax2, Map<Consts,Integer> constants){
 		this.xMin = xMin;
 		this.xMax = xMax;
 		this.yMin = yMin;
@@ -128,11 +130,11 @@ public class GraphParameters {
 		this.labels = labels;
 	}
 
-	public Map<Integer,Integer> getConstants() {
+	public Map<Consts,Integer> getConstants() {
 		return constants;
 	}
 
-	public void setConstants(Map<Integer,Integer> constants) {
+	public void setConstants(Map<Consts,Integer> constants) {
 		this.constants = constants;
 	}
 	

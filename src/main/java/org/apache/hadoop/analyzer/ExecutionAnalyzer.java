@@ -39,21 +39,17 @@ import org.rosuda.JRI.Rengine;
 
 //TODO Quais as attempts que apresentam valores fora do comum? Por quê?
 //TODO Retirar o agrupamento por tamanho do cluster e criar parâmetro para isto
-//TODO Rever os tempos de execucao das tarefas
+//TODO Rever os Times de execucao das tarefas
 //TODO analisar dados colhidos
-//TODO rever os tempos das fases
+//TODO rever os Times das fases
 //TODO Os valores das ondas não estao sendo corretos, exemplo: desc_1.00, tem NL_Map terminando depois do reduce começar
 //TODO Há uma certa distância entre algumas atividades de reduce. Acontece apenas para os casos sem MapShuffle?
-//TODO por que o reduce apresenta tão pouco tempo?
-//TODO Plotar uma CDF com a conclusão das tarefas, junto com a da nao-localidade
-//TODO Salvar no github
+//TODO por que o reduce apresenta tão pouco Time?
+//TODO Plotar uma ECDF com a conclusão das tarefas, junto com a da nao-localidade
 
 public class ExecutionAnalyzer {
 
-	//	private static final String path = "/home/thiago/tmp/experiment/1st_experiment/10x/";
-	// private static final String path = "/home/thiago/tmp/experiment/2nd_experiment/10x/";
-	private static final String path = "/home/thiago/tmp/experiment/2nd_experiment/20x/";
-	//	private static final String path = "/home/thiago/tmp/experiment/3rd_experiment/desc_1.00/";
+	private static final String path = "/home/thiago/tmp/experiments/03.lab.20x/";
 
 	private static final String tracePath = path + "traces/";
 	private static final String resultPath = path + "results/";
@@ -66,53 +62,82 @@ public class ExecutionAnalyzer {
 		r_engine = new Rengine(args, false, null);
 	}
 
-	private static final String gnuplotTerminal = "postscript eps enhanced";
-	private static final String gnuplotOutType = ".eps";
-	//	private static final String gnuplotTerminal = "png";
-	//	private static final String gnuplotOutType = ".png";
+	private static final String gnuplotTerminal_std = "postscript eps enhanced";
+	private static final String gnuplotOutType_std = ".eps";
+	private static final String gnuplotTerminal_waves = "png";
+	private static final String gnuplotOutType_waves = ".png";
 
 	private static enum PrintMode {
 		prettyPrint, inline, fullInline, disabled
 	};
 
-	private static enum GraphTypes {
-		JobTimeLines, JobTimeBarComp, JobSpeedupLines, JobSpeedupBarLines, JobReduceTimeLines, JobReduceTimeBars, PhasesEvaluation, PhasesPercentEvaluation,
-		MapLocality, MapNLScatter, MapNLECDF, MapCompletionTime, MapReduceCompletionTime, ReduceTimeLines, ReduceTimeBars, WaveLines, CDF
+	public static enum GraphTypes {
+		JobTimeBarComp, JobProcessingLines, JobSpeedupLines, JobSpeedupBarLines, JobReduceTimeLines, JobReduceTimeBars, 
+		PhasesEvaluation, PhasesPercentEvaluation,
+		MapLocality, MapNLScatter, MapNLAssignmentECDF, MapCompletionTime, MapReduceCompletionTime, 
+		ReduceTimeLines, ReduceTimeBars, WaveLines, ECDF
+	};
+	
+	public static enum Consts {
+		block_32MB, block_64MB, block_128MB, dataset_90Gb, dataset_30Gb
 	};
 
-	public static void main(String... args) throws Exception {
+	public static void main(String... args) throws Exception {		
+		String[] jobNames = { "JxtaSocketPerfDriver", "P3", "CountUpDriver" };
+		String[][] groups = {{"32-360", "64-180", "128-90"},{"32-120","64-60","128-30"}};
+		String[] groupNames = { "Max","Min" };
 
-		// Dummy parameters
-		// String[] jobNames = {"CountUpDriver","CountUpText","CountUp","JxtaSocketPerfDriver"};
-		// String[][] groups = {{"128-90","64-180","32-360"},{"128-30","64-60","32-120"}};//{Max,Min}
-		// String[] groupNames = {"Max","Min"};
+		Map<Consts,Integer> consts = new HashMap<Consts,Integer>();
+		
+		// jxtamax
+//		consts.put(Consts.block_32MB,1745);
+//		consts.put(Consts.block_64MB,1755);
+//		consts.put(Consts.block_128MB,1765);	
+//		consts.put(Consts.dataset_90Gb,92160);
+		
+		// jxtamin		
+//		consts.put(Consts.block_32MB,584);
+//		consts.put(Consts.block_64MB,587);
+//		consts.put(Consts.block_128MB,606);
+//		consts.put(Consts.dataset_30Gb,30720);
+		
+		// countupmax
+//		consts.put(Consts.block_32MB,872);
+//		consts.put(Consts.block_64MB,571);
+//		consts.put(Consts.block_128MB,745);		
+//		consts.put(Consts.dataset_90Gb,92160);
+
+		// countupmin
+		consts.put(Consts.block_32MB,86);
+		consts.put(Consts.block_64MB,91);
+		consts.put(Consts.block_128MB,94);		
+		consts.put(Consts.dataset_30Gb,30720);
 		
 		Map<GraphTypes, GraphParameters> graphTypes = new HashMap<GraphTypes,GraphParameters>();		
+		graphTypes.put(GraphTypes.JobProcessingLines, new GraphParameters(0, 0, 0, 0, 0, 0, consts));
+		graphTypes.put(GraphTypes.JobSpeedupBarLines, new GraphParameters(0, 0, 0, 0, 0, 0, consts));
+		graphTypes.put(GraphTypes.PhasesEvaluation, null);
+		graphTypes.put(GraphTypes.PhasesPercentEvaluation, null);
+		
 		Map<Integer,String> labels = new HashMap<Integer,String>();
 		labels.put(0,"CountUpDriver");
 		labels.put(1,"P3");
 		Map<Integer,String> sources = new HashMap<Integer,String>();
 		sources.put(0,"CountUpDriverMax");
 		sources.put(1,"P3Max");
-		graphTypes.put(GraphTypes.JobTimeBarComp, new GraphParameters(0, 0, 0, 550, sources, labels));		
-		Map<Integer,Integer> consts = new HashMap<Integer,Integer>();
-		consts.put(0,872);
-		consts.put(1,571);
-		consts.put(2,745);		
-		graphTypes.put(GraphTypes.JobSpeedupBarLines, new GraphParameters(0, 0, 0, 550, 0, 16, consts));		
-		graphTypes.put(GraphTypes.JobReduceTimeLines, new GraphParameters(0, 30, 0, 550));
-		graphTypes.put(GraphTypes.JobReduceTimeBars, new GraphParameters(0, 30, 0, 550));		
-		graphTypes.put(GraphTypes.PhasesEvaluation, new GraphParameters(0, 0, 0, 550));
-		graphTypes.put(GraphTypes.PhasesPercentEvaluation, null);
-		graphTypes.put(GraphTypes.MapNLScatter, new GraphParameters(0, 1, 0, 30));
-		graphTypes.put(GraphTypes.MapNLECDF, null);
-		graphTypes.put(GraphTypes.ReduceTimeBars, new GraphParameters(0, 0, 0, 350));
-		graphTypes.put(GraphTypes.ReduceTimeLines, new GraphParameters(0, 30, 0, 350));
-		graphTypes.put(GraphTypes.WaveLines, new GraphParameters(-1, 550, -1, 400));		
-
-		String[] jobNames = { "CountUpDriver", "JxtaSocketPerfDriver", "P3"};
-		String[][] groups = {{"32-360", "64-180", "128-90"},{"32-120","64-60","128-30"}};
-		String[] groupNames = { "Max","Min" };
+		graphTypes.put(GraphTypes.JobTimeBarComp, new GraphParameters(0, 0, 0, 0, sources, labels));
+				
+//		labels = new HashMap<Integer,String>();
+//		labels.put(0,"Assignment");
+//		labels.put(1,"NL Assignment");
+//		labels.put(2,"Done");
+//		sources = new HashMap<Integer,String>();
+//		sources.put(0,"P3MaxMapNLAssignmentECDF");
+//		sources.put(1,"P3MaxMapDoneECDF");
+//		sources.put(2,"P3MaxMapAssignmentECDF");
+//		graphTypes.put(GraphTypes.MapNLAssignmentECDF, new GraphParameters(0, 0, 0, 0, sources, labels));
+//		graphTypes.put(GraphTypes.MapNLScatter, new GraphParameters(0, 1, 0, 30));
+//		graphTypes.put(GraphTypes.WaveLines, new GraphParameters(-1, 350, -1, 400));
 
 		// Creates the job keys for classifications, composed by jobName and sufix
 		// <String,SortedMap<String,List<LoggedJob>>> == <groupItem<clusterSize,jobs>>
@@ -335,7 +360,9 @@ public class ExecutionAnalyzer {
 			wavesPath.mkdirs();
 
 			BufferedWriter fullWriter = new BufferedWriter(new FileWriter(dataPath + "/" + jobGroupName + ".dat"));
-			BufferedWriter mapNLECDFWriter = new BufferedWriter(new FileWriter(dataPath + "/" + jobGroupName + "MapNLECDF.dat"));
+			BufferedWriter mapAssignmentECDFWriter = new BufferedWriter(new FileWriter(dataPath + "/" + jobGroupName + "MapAssignmentECDF.dat"));
+			BufferedWriter mapNLAssignmentECDFWriter = new BufferedWriter(new FileWriter(dataPath + "/" + jobGroupName + "MapNLAssignmentECDF.dat"));
+			BufferedWriter mapDoneECDFWriter = new BufferedWriter(new FileWriter(dataPath + "/" + jobGroupName + "MapDoneECDF.dat"));						
 
 			for (String clusterSize : clusterSizes) {
 
@@ -348,10 +375,11 @@ public class ExecutionAnalyzer {
 						String dataSourcePrefix = dataPath + "/" + jobKey + "_" + clusterSize;
 						BufferedWriter mapLocalWavesWriter = new BufferedWriter(new FileWriter(dataSourcePrefix + "_Map.dat"));
 						BufferedWriter mapNLWavesWriter = new BufferedWriter(new FileWriter(dataSourcePrefix + "_MapNL.dat"));
-						BufferedWriter mapNLDispersionWriter = new BufferedWriter(new FileWriter(dataSourcePrefix + "_MapNLDispersion.dat"));
+						BufferedWriter mapNLAssignmentDispersionWriter = new BufferedWriter(new FileWriter(dataSourcePrefix + "_MapNLDispersion.dat"));
 						BufferedWriter reduceWavesWriter = new BufferedWriter(new FileWriter(dataSourcePrefix + "_Reduce.dat"));
 						generateStatisticData(jobs.get(clusterSize), PrintMode.fullInline, fullWriter, mapLocalWavesWriter, mapNLWavesWriter,
-								mapNLDispersionWriter, reduceWavesWriter, attemptTimes.get(jobKey), Integer.parseInt(clusterSize), mapNLECDFWriter);
+								mapNLAssignmentDispersionWriter, reduceWavesWriter, attemptTimes.get(jobKey), Integer.parseInt(clusterSize), 
+								mapNLAssignmentECDFWriter, mapDoneECDFWriter,mapAssignmentECDFWriter);
 						mapLocalWavesWriter.close();
 						mapNLWavesWriter.close();
 						reduceWavesWriter.close();
@@ -363,7 +391,8 @@ public class ExecutionAnalyzer {
 			}
 
 			fullWriter.close();
-			mapNLECDFWriter.close();
+			mapNLAssignmentECDFWriter.close();
+			mapDoneECDFWriter.close();
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		} catch (Exception ex) {
@@ -385,8 +414,10 @@ public class ExecutionAnalyzer {
 	}
 
 	private static Integer[] generateStatisticData(List<LoggedJob> jobs, PrintMode printMode, BufferedWriter fullDataWriter,
-			BufferedWriter mapLocalWavesWriter, BufferedWriter mapNLWavesWriter, BufferedWriter mapNLDispersionWriter, BufferedWriter reduceWavesWriter,
-			Histogram[] histograms, Integer clusterSize, BufferedWriter mapNLECDFWriter) {
+			BufferedWriter mapLocalWavesWriter, BufferedWriter mapNLWavesWriter, BufferedWriter mapNLAssignmentDispersionWriter, BufferedWriter reduceWavesWriter,
+			Histogram[] histograms, Integer clusterSize, BufferedWriter mapNLAssignmentECDFWriter, BufferedWriter mapDoneECDFWriter, 
+			BufferedWriter mapAssignmentECDFWriter) {
+		
 		DescriptiveStatistics jobRuntimeStats = new DescriptiveStatistics();
 		DescriptiveStatistics jobSetupTimeStats = new DescriptiveStatistics();
 		DescriptiveStatistics jobCleanupTimeStats = new DescriptiveStatistics();
@@ -415,13 +446,17 @@ public class ExecutionAnalyzer {
 		DescriptiveStatistics reduceAttemptStats = new DescriptiveStatistics();
 		SortedMap<Integer, DescriptiveStatistics[]> reduceWaves = new TreeMap<Integer, DescriptiveStatistics[]>();
 
-		List<Double> mapNLDispersion = new ArrayList<Double>();
+		List<Double> mapNLAssignmentDispersion = new ArrayList<Double>();
+		List<Double> mapAssignmentDispersion = new ArrayList<Double>();
+		List<Double> mapDoneDispersion = new ArrayList<Double>();
 
 		for (LoggedJob job : jobs) {
 			double jobTime = (job.getFinishTime() - job.getLaunchTime()) / 1000;
 
 			if (jobTime > 0) {
-				List<Long> mapNLStartTimes = new ArrayList<Long>();
+				List<Long> mapNLAssignmentTimes = new ArrayList<Long>();
+				List<Long> mapAssignmentTimes = new ArrayList<Long>();
+				List<Long> mapDoneTimes = new ArrayList<Long>();
 				jobRuntimeStats.addValue(jobTime);
 
 				// Setup and Cleanup
@@ -429,18 +464,33 @@ public class ExecutionAnalyzer {
 
 				// Map
 				PhaseTime mapPhaseTimes = getMapStatistics(job.getMapTasks(), mapNumStats, mapTimeStats, mapNLStats, mapOutInStats, mapSuccessAttemptStats,
-						mapKilledAttemptStats, mapFailedAttemptStats, mapAttemptStats, histograms[0], mapLocalWaves, mapNLWaves, mapNLStartTimes);
+						mapKilledAttemptStats, mapFailedAttemptStats, mapAttemptStats, histograms[0], mapLocalWaves, mapNLWaves, mapNLAssignmentTimes, 
+						mapDoneTimes, mapAssignmentTimes);
 
 				// Reduce
 				getReduceStatistics(mapPhaseTimes.getMinFinishTime(), mapPhaseTimes.getMaxFinishTime(), job.getReduceTasks(), reduceNumStats,
 						mapShuffleTimeStats, reduceShuffleTimeStats, reduceSortTimeStats, reduceTimeStats, reduceTaskTimeStats, reduceNotLocalAttemptStats,
 						reduceSuccessAttemptStats, reduceKilledAttemptStats, reduceFailedAttemptStats, reduceAttemptStats, histograms[1], reduceWaves);
 
+				// Map Assignment Dispersion
+				for (Long mapAssignmentTime : mapAssignmentTimes) {
+					double assignmentTime = mapAssignmentTime - job.getLaunchTime();
+					double mapMaxFinishTime = mapPhaseTimes.getMaxFinishTime() - job.getLaunchTime();
+					mapAssignmentDispersion.add(assignmentTime/mapMaxFinishTime);
+				}
+				
 				// Not Local Map Dispersion
-				for (Long mapNLStartTime : mapNLStartTimes) {
+				for (Long mapNLStartTime : mapNLAssignmentTimes) {
 					double nlStart = mapNLStartTime - job.getLaunchTime();
-					double mapStartTime = mapPhaseTimes.getMaxStartTime() - job.getLaunchTime();
-					mapNLDispersion.add(nlStart / mapStartTime);
+					double mapMaxFinishTime = mapPhaseTimes.getMaxFinishTime() - job.getLaunchTime();
+					mapNLAssignmentDispersion.add(nlStart/mapMaxFinishTime);
+				}
+				
+				//  MapDone Dispersion
+				for (Long mapDoneTime : mapDoneTimes) {
+					double mapDone = mapDoneTime - job.getLaunchTime();
+					double mapMaxFinishTime = mapPhaseTimes.getMaxFinishTime() - job.getLaunchTime();
+					mapDoneDispersion.add(mapDone/mapMaxFinishTime);
 				}
 			}
 		}
@@ -451,7 +501,8 @@ public class ExecutionAnalyzer {
 					mapOutInStats, mapSuccessAttemptStats, mapKilledAttemptStats, mapFailedAttemptStats, mapAttemptStats, reduceNumStats,
 					reduceTaskTimeStats, reduceShuffleTimeStats, reduceSortTimeStats, reduceTimeStats, reduceNotLocalAttemptStats, reduceSuccessAttemptStats,
 					reduceKilledAttemptStats, reduceFailedAttemptStats, reduceAttemptStats, fullDataWriter, mapLocalWavesWriter, mapLocalWaves,
-					mapNLWavesWriter, mapNLDispersionWriter, mapNLWaves, reduceWavesWriter, reduceWaves, mapNLDispersion, mapNLECDFWriter);
+					mapNLWavesWriter, mapNLAssignmentDispersionWriter, mapNLWaves, reduceWavesWriter, reduceWaves, mapNLAssignmentDispersion, 
+					mapNLAssignmentECDFWriter,	mapDoneDispersion, mapDoneECDFWriter, mapAssignmentDispersion, mapAssignmentECDFWriter);
 		}
 
 		Integer[] axes = new Integer[2];
@@ -470,15 +521,16 @@ public class ExecutionAnalyzer {
 
 		for (GraphTypes key : keys) {
 			switch (key) {
-
-			case JobTimeLines:
-				plotJobTimeLines(resultDir, sourceFileName, sourceFileName, jobGroupName + key.name(), graphTypes.get(key));
-				break;
 				
 			case JobTimeBarComp:
-				plotJobTimeBarComp(resultDir, jobGroupName + key.name(), graphTypes.get(key));
+				if(jobGroupName.contains("CountUpDriver"))
+					plotJobTimeBarComp(resultDir, jobGroupName + key.name(), graphTypes.get(key));
 				break;
 
+			case JobProcessingLines:
+				plotProcessingLines(resultDir, sourceFileName, jobGroupName + key.name(), graphTypes.get(key));
+				break;
+				
 			case JobSpeedupLines:
 				plotJobSpeedupLines(resultDir, sourceFileName, jobGroupName + key.name(), graphTypes.get(key));
 				break;
@@ -512,8 +564,8 @@ public class ExecutionAnalyzer {
 				plotMapNLScatter(resultDir, NLDFiles, jobGroupName + key.name(), graphTypes.get(key));
 				break;
 
-			case MapNLECDF:
-				plotMapNLECDF(r_engine, resultDir, dataDir, jobGroupName + key.name());
+			case MapNLAssignmentECDF:
+				plotMapNLAssignmentECDF(r_engine, resultDir, resultDir.toString() + "/" + dataDir, jobGroupName + key.name(),graphTypes.get(key));
 				break;
 
 			case MapCompletionTime:
@@ -536,8 +588,8 @@ public class ExecutionAnalyzer {
 				plotWaves(groupedJobs, resultDir, jobGroupName, graphTypes.get(key));				
 				break;
 
-			case CDF:
-				plotCDFs(r_engine, attemptTimes, jobGroupName, resultPath, dataDir);
+			case ECDF:
+				plotECDFs(r_engine, attemptTimes, jobGroupName, resultPath, dataDir);
 				break;
 
 			default:
@@ -573,7 +625,7 @@ public class ExecutionAnalyzer {
 		}
 	}
 
-	private static void plotCDFs(Rengine rengine, SortedMap<String, Histogram[]> attemptTimes, String jobGroupName, String resultPath, String dataPath)
+	private static void plotECDFs(Rengine rengine, SortedMap<String, Histogram[]> attemptTimes, String jobGroupName, String resultPath, String dataPath)
 			throws IOException {
 
 		Set<String> names = attemptTimes.keySet();
@@ -583,11 +635,11 @@ public class ExecutionAnalyzer {
 			String dataPathStr = resultPath + "/" + jobGroupName + "/" + dataPath;
 			Histogram[] histogram = attemptTimes.get(fileName);
 
-			// Plots Map CDF
-			plotCDF(rengine, histogram[0], resultPathStr, dataPathStr, fileName + "_CDFMap");
+			// Plots Map ECDF
+			plotECDF(rengine, histogram[0], resultPathStr, dataPathStr, fileName + "_ECDFMap");
 
-			// Plots Reduce CDF
-			plotCDF(rengine, histogram[1], resultPathStr, dataPathStr, fileName + "_CDFReduce");
+			// Plots Reduce ECDF
+			plotECDF(rengine, histogram[1], resultPathStr, dataPathStr, fileName + "_ECDFReduce");
 		}
 
 	}
@@ -622,7 +674,7 @@ public class ExecutionAnalyzer {
 			DescriptiveStatistics mapNLStats, DescriptiveStatistics outInStats, DescriptiveStatistics successAttemptStats,
 			DescriptiveStatistics killedAttemptStats, DescriptiveStatistics failedAttemptStats, DescriptiveStatistics totalAttemptStats,
 			Histogram attemptTimes, SortedMap<Integer, DescriptiveStatistics[]> mapLocalWaves, SortedMap<Integer, DescriptiveStatistics[]> mapNLWaves,
-			List<Long> mapNLStartTime) {
+			List<Long> mapNLAssignmentTimes, List<Long> mapDoneTimes, List<Long> mapAssignmentTimes) {
 
 		double minStartTime = Double.MAX_VALUE;
 		double maxStartTime = Double.MIN_VALUE;
@@ -684,7 +736,7 @@ public class ExecutionAnalyzer {
 						}
 
 						if ((mapAttempt.getFinishTime() - mapAttempt.getStartTime()) > 0) {
-							attemptTimes.enter(mapAttempt.getFinishTime() - mapAttempt.getStartTime());
+							attemptTimes.enter(mapAttempt.getFinishTime() - mapAttempt.getStartTime());							
 						}
 					}
 				}
@@ -695,10 +747,12 @@ public class ExecutionAnalyzer {
 
 				MapTime mapTime = new MapTime(mapTask.getStartTime(), mapTask.getFinishTime());
 				mapTimes.add(mapTime);
+				mapAssignmentTimes.add(mapTask.getStartTime());
 				if (!isLocal) {
 					nlMapTimes.add(mapTime);
-					mapNLStartTime.add(mapTask.getStartTime());
+					mapNLAssignmentTimes.add(mapTask.getStartTime());
 				}
+				mapDoneTimes.add(mapTask.getFinishTime());
 			}
 		}
 		mapTaskTimeStats.addValue((maxFinishTime - minStartTime) / 1000);
@@ -886,13 +940,16 @@ public class ExecutionAnalyzer {
 			DescriptiveStatistics reduceNotLocalAttemptStats, DescriptiveStatistics reduceSuccessAttemptStats,
 			DescriptiveStatistics reduceKilledAttemptStats, DescriptiveStatistics reduceFailedAttemptStats, DescriptiveStatistics reduceAttemptStats,
 			BufferedWriter fullDataWriter, BufferedWriter mapLocalWavesWriter, SortedMap<Integer, DescriptiveStatistics[]> mapLocalWaves,
-			BufferedWriter mapNLWavesWriter, BufferedWriter mapNLDispersionWriter, SortedMap<Integer, DescriptiveStatistics[]> mapNLWaves,
-			BufferedWriter reduceWavesWriter, SortedMap<Integer, DescriptiveStatistics[]> reduceWaves, List<Double> mapNLDispersion, 
-			BufferedWriter mapNLECDFWriter) {
+			BufferedWriter mapNLWavesWriter, BufferedWriter mapNLAssignmentDispersionWriter, SortedMap<Integer, DescriptiveStatistics[]> mapNLWaves,
+			BufferedWriter reduceWavesWriter, SortedMap<Integer, DescriptiveStatistics[]> reduceWaves, List<Double> mapNLAssignmentDispersion, 
+			BufferedWriter mapNLAssignmentECDFWriter, List<Double> mapDoneDispersion, BufferedWriter mapDoneECDFWriter, 
+			List<Double> mapAssignmentDispersion, BufferedWriter mapAssignmentECDFWriter) {
 
 		StringBuilder output = new StringBuilder();
 		DecimalFormat df2 = new DecimalFormat("#,###,###,##0.00");
 
+		//TODO rever como está sendo contabilizado o Time das fases. Tem um artigo que diz como ele está considerando, podemos pensar e usar o mesmo
+		//TODO diferenciar o Time médio da tarefa, do Time médio da fase, verificar se esta distição está sendo feita
 		jobRuntimeStats = removeOutliers(jobRuntimeStats);
 		mapTimeStats = removeOutliers(mapTimeStats);
 		mapShuffleTimeStats = removeOutliers(mapShuffleTimeStats);
@@ -900,9 +957,6 @@ public class ExecutionAnalyzer {
 		reduceShuffleTimeStats = removeOutliers(reduceShuffleTimeStats);
 		reduceSortTimeStats = removeOutliers(reduceSortTimeStats);
 		reduceTimeStats = removeOutliers(reduceTimeStats);
-
-		// if(getConfidenceInterval(jobRuntimeStats) >= 6)
-		// return;
 
 		output.append("\t" + df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
 		output.append("\t" + df2.format(jobSetupTimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobSetupTimeStats)));
@@ -948,7 +1002,6 @@ public class ExecutionAnalyzer {
 		}
 
 		int index = 1;
-
 		if (mapLocalWavesWriter != null) {
 			try {
 				Set<Integer> keys = mapLocalWaves.keySet();
@@ -983,23 +1036,6 @@ public class ExecutionAnalyzer {
 			}
 		}
 
-		if (mapNLDispersionWriter != null) {
-			try {
-				for (Double startTime : mapNLDispersion) {
-					mapNLDispersionWriter.write(startTime.toString());
-					mapNLDispersionWriter.newLine();
-					mapNLDispersionWriter.flush();					
-					mapNLECDFWriter.write(startTime.toString());
-					mapNLECDFWriter.newLine();
-					mapNLECDFWriter.flush();
-					index++;
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		index = mapLocalWaves.keySet().size() + mapNLWaves.keySet().size();
 		if (reduceWavesWriter != null) {
 			try {
 				Set<Integer> keys = reduceWaves.keySet();
@@ -1012,6 +1048,45 @@ public class ExecutionAnalyzer {
 					reduceWavesWriter.newLine();
 					reduceWavesWriter.flush();
 					index++;
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if (mapAssignmentECDFWriter != null) {
+			try {
+				for (Double mapAssignmentTime : mapAssignmentDispersion) {									
+					mapAssignmentECDFWriter.write(mapAssignmentTime.toString());
+					mapAssignmentECDFWriter.newLine();
+					mapAssignmentECDFWriter.flush();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if (mapNLAssignmentDispersionWriter != null && mapNLAssignmentECDFWriter != null) {
+			try {
+				for (Double startTime : mapNLAssignmentDispersion) {
+					mapNLAssignmentDispersionWriter.write(startTime.toString());
+					mapNLAssignmentDispersionWriter.newLine();
+					mapNLAssignmentDispersionWriter.flush();					
+					mapNLAssignmentECDFWriter.write(startTime.toString());
+					mapNLAssignmentECDFWriter.newLine();
+					mapNLAssignmentECDFWriter.flush();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if (mapDoneECDFWriter != null) {
+			try {
+				for (Double mapFinishTime : mapDoneDispersion) {									
+					mapDoneECDFWriter.write(mapFinishTime.toString());
+					mapDoneECDFWriter.newLine();
+					mapDoneECDFWriter.flush();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1043,23 +1118,50 @@ public class ExecutionAnalyzer {
 		}
 		return statistic;
 	}
-
-	public static void plotJobTimeLines(File resultDir, String sourceFileName, String monoFileName, String destFileName, GraphParameters params) {
-		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
-				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
-				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" +				 
-				"set xlabel \"Nodes\";" + 
-				"set ylabel \"Runtime(s)\";" +
-				"set key center right;" + 
-				"plot 'data/" + sourceFileName + ".dat' using 1:2:3 title \"JobRuntime(32MB)\" w yerrorlines," + "'data/" + sourceFileName + 
-				".dat' using 1:40:41 title \"JobRuntime(64MB)\" w yerrorlines," + "'data/" + sourceFileName + 
-				".dat' using 1:78:79 title \"JobRuntime(128MB)\" w yerrorlines," + "'data/" + monoFileName + 
-				".dat' using (0):3:(1):(0) axes x2y1 with vector nohead filled lt 3 title \"MonoRuntime\";";
+	
+	public static void plotProcessingLines(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
+		
+		Map<Consts,Integer> consts = params.getConstants();
+		Integer datasetSize = consts.containsKey(Consts.dataset_90Gb) ? consts.get(Consts.dataset_90Gb) : consts.get(Consts.dataset_30Gb);		
+				
+		String strCommands = "reset;" +				 
+				"f(x) = " + datasetSize + " / x;" + 
+				"g(x,y) = (" + datasetSize + " / x) / y;" + 				
+				"plot " +
+				"'data/" + sourceFileName + ".dat' u 1:( f($2) ) w lp lt 0  pt 5 t \"Throughput - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( f($46) ) w lp lt 5 pt 7 t \"Throughput - 64MB\"," +
+				"'data/" + sourceFileName + ".dat' u 1:( f($90) ) w lp lt 0  pt 9 t \"Throughput - 128MB\"," +
+				"'data/" + sourceFileName + ".dat' u 1:( g($2,$1) ) w lp lt 0  pt 4 axis x1y2 t \"Throughput/Nodes - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( g($46,$1) ) w lp lt 5 pt 6 axis x1y2 t \"Throughput/Nodes - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( g($90,$1) ) w lp lt 7 pt 8 axis x1y2 t \"Throughput/Nodes - 128MB\";" +				
+				"YMAX=GPVAL_Y_MAX;" +
+				"YMIN=GPVAL_Y_MIN;" +
+				"Y2MAX=GPVAL_Y2_MAX;" +
+				"Y2MIN=GPVAL_Y2_MIN;" +
+				"XMAX=GPVAL_X_MAX;" +
+				"XMIN=GPVAL_X_MIN;" +				
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+
+				"set yrange [YMIN-(YMAX-YMIN)*0.05:YMAX+(YMAX-YMIN)*0.3];" + 
+				"set ylabel \"Throughput (Mbps)\";" +
+				"set ytics nomirror;" + 
+				"set y2range [Y2MIN-(Y2MAX-Y2MIN)*0.05:Y2MAX+(Y2MAX-Y2MIN)*0.05];" +				
+				"set y2label \"Throughput/Nodes (Mbps)\";" +
+				"set y2tics;" +
+				"set xtics 2;" + 
+				"set xlabel \"Nodes\";" +
+				"set xrange [XMIN-(XMAX-XMIN)*0.01:XMAX+(XMAX-XMIN)*0.01];" +
+				"set key top right;" +
+				"plot " +
+				"'data/" + sourceFileName + ".dat' u 1:( f($2) ) w lp lt 0  pt 5 t \"Throughput - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( f($46) ) w lp lt 5 pt 7 t \"Throughput - 64MB\"," +
+				"'data/" + sourceFileName + ".dat' u 1:( f($90) ) w lp lt 0  pt 9 t \"Throughput - 128MB\"," +
+				"'data/" + sourceFileName + ".dat' u 1:( g($2,$1) ) w lp lt 0  pt 4 axis x1y2 t \"Throughput/Nodes - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( g($46,$1) ) w lp lt 5 pt 6 axis x1y2 t \"Throughput/Nodes - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 1:( g($90,$1) ) w lp lt 7 pt 8 axis x1y2 t \"Throughput/Nodes - 128MB\";";		
 		try {
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
-			process.directory(resultDir);
+			process.directory(destPath);
 			process.start();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -1073,27 +1175,37 @@ public class ExecutionAnalyzer {
 		Map<Integer,String> sources = parameters.getSources();
 		Map<Integer,String> labels = parameters.getLabels();
 		
-		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
-				"set yrange [" + parameters.getyMin() + ":" + parameters.getyMax() + "];" + 
+		String strCommands = "reset;" +				
 				"set style data histogram;" + 
 				"set style histogram errorbars gap 2 lw 3;" + 
-				"set style fill pattern border;" + 
+				"set style fill pattern border;" +
+				"plot " + 
+				"'data/" + sources.get(0) + ".dat' u 2:3:xtic(1) lt 1 t \"" + labels.get(0) + " - 32MB\", " + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 2:3 lt 1 t \"" + labels.get(1) + " - 32MB\", " + 
+				"'data/" + sources.get(0) + ".dat' u 46:47:xtic(1) lt 1 t \"" + labels.get(0) + " - 64MB\"," + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 46:47 lt 1 t \"" + labels.get(1) + " - 64MB\", " + 
+				"'data/" + sources.get(0) + ".dat' u 90:91:xtic(1) lt 1 t \"" + labels.get(0) + " - 128MB\"," + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 90:91 lt 1 t \"" + labels.get(1) + " - 128MB\";" +
+				"YMAX=GPVAL_Y_MAX;" +
+				
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+ 
+				"set yrange [0:YMAX];" +				
+				"set ylabel \"Time(s)\";" +
+				"set xlabel \"Nodes\";" +
 				"set boxwidth 0.9;" + 
 				"plot " + 
-				"'data/" + sources.get(0) + ".dat' u 2:3:xtic(1) lt 1 t \"" + labels.get(0) + "(32MB)\", " + 
-				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 2:3 lt 1 t \"" + labels.get(1) + "(32MB)\", " + 
-				"'data/" + sources.get(0) + ".dat' u 46:47:xtic(1) lt 1 t \"" + labels.get(0) + "(64MB)\"," + 
-				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 46:47 lt 1 t \"" + labels.get(1) + "(64MB)\", " + 
-				"'data/" + sources.get(0) + ".dat' u 90:91:xtic(1) lt 1 t \"" + labels.get(0) + "(128MB)\"," + 
-				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 90:91 lt 1 t \"" + labels.get(1) + "(128MB)\"";
+				"'data/" + sources.get(0) + ".dat' u 2:3:xtic(1) lt 1 t \"" + labels.get(0) + " - 32MB\", " + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 2:3 lt 1 t \"" + labels.get(1) + " - 32MB\", " + 
+				"'data/" + sources.get(0) + ".dat' u 46:47:xtic(1) lt 1 t \"" + labels.get(0) + " - 64MB\"," + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 46:47 lt 1 t \"" + labels.get(1) + " - 64MB\", " + 
+				"'data/" + sources.get(0) + ".dat' u 90:91:xtic(1) lt 1 t \"" + labels.get(0) + " - 128MB\"," + 
+				"'../" + sources.get(1) + "/data/" + sources.get(1) + ".dat' u 90:91 lt 1 t \"" + labels.get(1) + " - 128MB\"";
 		try {
-			//TODO
-			System.out.println(strCommands);
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
 			process.start();
+			System.out.println(strCommands);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -1103,11 +1215,11 @@ public class ExecutionAnalyzer {
 
 	public static void plotJobSpeedupLines(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		
-		Map<Integer,Integer> consts = params.getConstants();
+		Map<Consts,Integer> consts = params.getConstants();
 		
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+ 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" +
 				"set y2range [" + params.getyMin2() + ":" + params.getyMax2() + "];" + "set y2tics;" +
@@ -1116,16 +1228,16 @@ public class ExecutionAnalyzer {
 				"set ylabel \"Runtime(s)\";" +				 
 				"set y2label \"Speedup\";" +				
 				"set key top right;" + 
-				"f(x) = " + consts.get(0) + " / x;" + 
-				"g(x) = " + consts.get(1) + " / x;" + 
-				"h(x) = " + consts.get(2) + " / x;" + 
+				"f(x) = " + consts.get(Consts.block_32MB) + " / x;" + 
+				"g(x) = " + consts.get(Consts.block_64MB) + " / x;" + 
+				"h(x) = " + consts.get(Consts.block_128MB) + " / x;" + 
 				"plot 'data/" + sourceFileName + 
-				".dat' using 1:2:3 axis x1y1 title \"JobRuntime(32MB)\" w yerrorlines, " + "'data/" + sourceFileName + 
-				".dat' using 1:46:47 axis x1y1 title \"JobRuntime(64MB)\" w yerrorlines, " + "'data/" + sourceFileName + 
-				".dat' using 1:90:91 axis x1y1 title \"JobRuntime(128MB)\" w yerrorlines," + "'data/" + sourceFileName + 
-				".dat' using 1:( f($2) ) w lp lt 5 pt 5 axis x1y2 title \"Speedup(32MB)\", " + "'data/" + sourceFileName + 
-				".dat' using 1:( g($46) ) w lp lt 7 pt 7 axis x1y2 title \"Speedup(64MB)\", " + "'data/" + sourceFileName + 
-				".dat' using 1:( h($90) ) w lp lt 12 pt 9 axis x1y2 title \"Speedup(128MB)\";";
+				".dat' using 1:2:3 axis x1y1 title \"Completion Time - 32MB\" w yerrorlines, " + "'data/" + sourceFileName + 
+				".dat' using 1:46:47 axis x1y1 title \"Completion Time - 64MB\" w yerrorlines, " + "'data/" + sourceFileName + 
+				".dat' using 1:90:91 axis x1y1 title \"Completion Time - 128MB\" w yerrorlines," + "'data/" + sourceFileName + 
+				".dat' using 1:( f($2) ) w lp lt 5 pt 5 axis x1y2 title \"Speedup - 32MB\", " + "'data/" + sourceFileName + 
+				".dat' using 1:( g($46) ) w lp lt 7 pt 7 axis x1y2 title \"Speedup - 64MB\", " + "'data/" + sourceFileName + 
+				".dat' using 1:( h($90) ) w lp lt 12 pt 9 axis x1y2 title \"Speedup - 128MB\";";
 		try {
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
@@ -1139,30 +1251,45 @@ public class ExecutionAnalyzer {
 	
 	public static void plotJobSpeedupBarLines(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		
-		Map<Integer,Integer> consts = params.getConstants();
+		Map<Consts,Integer> consts = params.getConstants();
 		
-		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
-				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
-				"set ytics nomirror;" + 
-				"set ylabel \"Runtime(s)\";" + 
-				"set y2range [" + params.getyMin2() + ":" + params.getyMax2() + "];" + 
-				"set y2tics;" + 
-				"set y2label \"Speedup\";" + 
-				"set xlabel \"Nodes\";" + 
-				"set key top right;" + "f(x) = " + consts.get(0) + " / x;" + "g(x) = " + consts.get(1) + " / x;" + "h(x) = " + consts.get(2) + " / x;" + 
+		String strCommands = "reset;" + 						
+				"f(x) = " + consts.get(Consts.block_32MB) + " / x;" + 
+				"g(x) = " + consts.get(Consts.block_64MB) + " / x;" + 
+				"h(x) = " + consts.get(Consts.block_128MB) + " / x;" +
 				"set style data histogram;" + 
 				"set style histogram errorbars gap 1.5 lw 3;" + 
-				"set style fill pattern border;" + 
+				"set style fill pattern border;" +
 				"plot " + 
-				"'data/" + sourceFileName + ".dat' u 2:3:xtic(1) lt 1 axis x1y1 t \"JobTime(32MB)\"," + 
-				"'data/" + sourceFileName + ".dat' u 46:47:xtic(1) lt 1 axis x1y1 t \"JobTime(64MB)\"," + 
-				"'data/" + sourceFileName + ".dat' u 90:91:xtic(1) lt 1 axis x1y1 t \"JobTime(128MB)\"," + 
-				"'data/" + sourceFileName + ".dat' u ( f($2) ):xtic(1) w lp lt 0  pt 5 axis x1y2 t \"Speedup(32MB)\"," + 
-				"'data/" + sourceFileName + ".dat' u ( g($46) ):xtic(1) w lp lt 5 pt 7 axis x1y2 t \"Speedup(64MB)\"," + 
-				"'data/" + sourceFileName + ".dat' u ( h($90) ):xtic(1) w lp lt 7 pt 9 axis x1y2 t \"Speedup(128MB)\";";
-		try {
+				"'data/" + sourceFileName + ".dat' u 2:3:xtic(1) lt 1 axis x1y1 t \"Completion Time - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 46:47:xtic(1) lt 1 axis x1y1 t \"Completion Time - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 90:91:xtic(1) lt 1 axis x1y1 t \"Completion Time - 128MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( f($2) ):xtic(1) w lp lt 0  pt 5 axis x1y2 t \"Speed-up - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( g($46) ):xtic(1) w lp lt 5 pt 7 axis x1y2 t \"Speed-up - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( h($90) ):xtic(1) w lp lt 7 pt 9 axis x1y2 t \"Speed-up - 128MB\";" +
+				
+				"YMAX=GPVAL_Y_MAX;" +
+				"Y2MAX=GPVAL_Y2_MAX;" +
+				"Y2MIN=GPVAL_Y2_MIN;" +
+				 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+ 
+				"set key top right;" + 
+				"set ytics nomirror;" + 
+				"set ylabel \"Time(s)\";" + 
+				"set yrange [0:YMAX];" + 
+				"set y2tics;" + 
+				"set y2label \"Speed-up\";" + 
+				"set y2range [Y2MIN-(Y2MAX-Y2MIN)*0.05:Y2MAX+(Y2MAX-Y2MIN)*0.35];" +				
+				"set xlabel \"Nodes\";" + 
+				"plot " + 
+				"'data/" + sourceFileName + ".dat' u 2:3:xtic(1) lt 1 axis x1y1 t \"Completion Time - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 46:47:xtic(1) lt 1 axis x1y1 t \"Completion Time - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u 90:91:xtic(1) lt 1 axis x1y1 t \"Completion Time - 128MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( f($2) ):xtic(1) w lp lt 0  pt 5 axis x1y2 t \"Speed-up - 32MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( g($46) ):xtic(1) w lp lt 5 pt 7 axis x1y2 t \"Speed-up - 64MB\"," + 
+				"'data/" + sourceFileName + ".dat' u ( h($90) ):xtic(1) w lp lt 7 pt 9 axis x1y2 t \"Speed-up - 128MB\";";
+		try {			
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
 			process.start();
@@ -1175,8 +1302,8 @@ public class ExecutionAnalyzer {
 
 	public static void plotJobReduceTimeLines(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
@@ -1199,8 +1326,8 @@ public class ExecutionAnalyzer {
 	
 	public static void plotJobReduceTimeBars(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
 				"set xlabel \"Nodes\";" + 
@@ -1224,8 +1351,8 @@ public class ExecutionAnalyzer {
 	
 	public static void plotPhasesEvaluation(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal "	+ gnuplotTerminal + ";"	+ 
-				"set output \"" + destFileName + gnuplotOutType	+ "\";"	+ 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std	+ "\";"	+ 
 				"set boxwidth 0.8;" + 
 				"set style fill pattern 1;" + 
 				"set grid nopolar;" + 
@@ -1239,7 +1366,7 @@ public class ExecutionAnalyzer {
 				"set xlabel \" \" ;" + 
 				"set xlabel offset character 0, -1, 0 font \"\" textcolor lt -1 norotate;" + 
 				"set ylabel \"Time(s)\" ;" + 
-				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "] noreverse nowriteback;" + 
+//				"set yrange [0:500] noreverse nowriteback;" +
 				"plot " + 
 				"newhistogram \"32MB\" fs pattern 1, 'data/" + sourceFileName	+ ".dat' " + 
 				"u ($10 - $28):xtic(1) t \"Map\" lt 1, '' u 28 t \"Map and Shuffle\" lt 1, '' u 30 t \"Shuffle\" lt 1, '' u 32 t \"Sort\" lt 1, '' u 34 t \"Reduce\" lt 1,'' u 4 t \"Setup\" lt 1, '' u 6 t \"Cleanup\" lt 1," + 
@@ -1259,8 +1386,9 @@ public class ExecutionAnalyzer {
 	}
 
 	public static void plotPhasesPercentEvaluation(File destPath, String sourceFileName, String destFileName) {
-		String strCommands = "reset;" + "set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+		String strCommands = "reset;" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set boxwidth 0.8;" + 
 				"set style fill pattern 1;" + 
 				"set grid noxtics nomxtics noztics nomztics nox2tics nomx2tics noy2tics nomy2tics nocbtics nomcbtics;" + 
@@ -1272,13 +1400,13 @@ public class ExecutionAnalyzer {
 				"set xtics rotate by -90;" + 
 				"set xlabel \" \";" + 
 				"set xlabel offset character 0, -1, 0 font \"\" textcolor lt -1 norotate;" + 
-				"set ylabel \"% of Job Time\";" + 
+				"set ylabel \"% of Completion Time\";" + 
 				"set yrange [0:100] noreverse nowriteback;" + 
 				"perc(x,y) = (x/y)*100;" + 
 				"percRemain(a,b,c,d,e,f,g,h) = ((a - b - c - d - e - f - g - h)/a)*100;" + 
 				"plot " + 
 				"newhistogram \"32MB\" fs pattern 1, 'data/" + sourceFileName +	".dat' " + 
-				"u ( perc($10 - $28, $2) ):xtic(1) t \"Map\" lt 1, '' u ( perc($28, $2) ) t \"Map and Shuffle\" lt 1, '' u ( perc($30, $2) ) t \"Shuffle\" lt 1, " + 
+				"u ( perc($10 - $28, $2) ):xtic(1) t \"Map\" lt 1, '' u ( perc($28, $2) ) t \"Map e Shuffle\" lt 1, '' u ( perc($30, $2) ) t \"Shuffle\" lt 1, " + 
 				"'' u ( perc($32, $2) ) t \"Sort\" lt 1, '' u ( perc($34, $2) ) t \"Reduce\" lt 1, '' u ( perc($4, $2) ) t \"Setup\" lt 1, " + 
 				"'' u ( perc($6, $2) ) t \"Cleanup\" lt 1, '' u ( percRemain($2, $10 - $28, $28, $30, $32, $34, $4, $6) ) t \"Others\" lt 1, " + 
 				"newhistogram \"64MB\" fs pattern 1, " + 
@@ -1303,9 +1431,8 @@ public class ExecutionAnalyzer {
 	public static void plotMapNLScatter(File destPath, SortedMap<String, File> nldFiles, String destFileName, GraphParameters params) {
 		StringBuilder str = new StringBuilder();
 		str.append("reset;");
-		str.append("set terminal ");
-		str.append(gnuplotTerminal + ";");
-		str.append("set output \"" + destFileName + gnuplotOutType + "\";");
+		str.append(getTerminalCode());
+		str.append("set output \"" + destFileName + gnuplotOutType_std + "\";");
 		str.append("set xrange [" + params.getxMin() + ":" + params.getxMax() + "];");
 		str.append("set yrange [" + params.getyMin() + ":" + params.getyMax() + "];");		
 		str.append("set ylabel \"Number of Nodes\";");
@@ -1334,8 +1461,8 @@ public class ExecutionAnalyzer {
 
 	public static void plotMapLocality(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+ 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set y2range [" + params.getyMin2() + ":" + params.getyMax2() + "];" + 
@@ -1346,12 +1473,12 @@ public class ExecutionAnalyzer {
 				"set y2label \"Non-locality\";" + 
 				"set key top left reverse Left;" + 
 				"plot" +
-				" 'data/" + sourceFileName + ".dat' using 1:14:15 axis x1y1 title \"Map Meantime(32MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:52:53 axis x1y1 title \"Map Meantime(64MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:90:91 axis x1y1 title \"Map Meantime(128MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:16:17 axis x1y2 title \"Map Non-locality(32MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:54:55 axis x1y2 title \"Map Non-locality(64MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:92:93 axis x1y2 title \"Map Non-locality(64MB)\" w yerrorlines;";
+				" 'data/" + sourceFileName + ".dat' using 1:14:15 axis x1y1 title \"Map Meantime - 32MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:52:53 axis x1y1 title \"Map Meantime - 64MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:90:91 axis x1y1 title \"Map Meantime - 128MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:16:17 axis x1y2 title \"Map Non-locality - 32MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:54:55 axis x1y2 title \"Map Non-locality - 64MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:92:93 axis x1y2 title \"Map Non-locality - 64MB\" w yerrorlines;";
 		try {
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
@@ -1365,15 +1492,15 @@ public class ExecutionAnalyzer {
 
 	public static void plotMapCompletionTime(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
 				"set xlabel \"Nodes\";" + 
-				"plot 'data/" + sourceFileName + ".dat' using 1:14:15 title \"Map Meantime(32MB)\" w yerrorlines," + 
-				"'data/" + sourceFileName + ".dat' using 1:52:53 title \"Map Meantime(64MB)\" w yerrorlines," + 
-				"'data/" + sourceFileName + ".dat' using 1:90:91 title \"Map Meantime(128MB)\" w yerrorlines;";
+				"plot 'data/" + sourceFileName + ".dat' using 1:14:15 title \"Map Meantime - 32MB\" w yerrorlines," + 
+				"'data/" + sourceFileName + ".dat' using 1:52:53 title \"Map Meantime - 64MB\" w yerrorlines," + 
+				"'data/" + sourceFileName + ".dat' using 1:90:91 title \"Map Meantime - 128MB\" w yerrorlines;";
 		try {
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
@@ -1387,8 +1514,8 @@ public class ExecutionAnalyzer {
 
 	public static void plotReduceTimeBars(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
 				"set xlabel \"Nodes\";" + 
@@ -1413,8 +1540,8 @@ public class ExecutionAnalyzer {
 
 	public static void plotReduceTimeLines(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";" + 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";" + 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
@@ -1436,19 +1563,19 @@ public class ExecutionAnalyzer {
 
 	public static void plotMapReduceCompletionTime(File destPath, String sourceFileName, String destFileName, GraphParameters params) {
 		String strCommands = "reset;" + 
-				"set terminal " + gnuplotTerminal + ";" + 
-				"set output \"" + destFileName + gnuplotOutType + "\";"	+ 
+				getTerminalCode() + 
+				"set output \"" + destFileName + gnuplotOutType_std + "\";"	+ 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" +
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set ylabel \"Runtime(s)\";" + 
 				"set xlabel \"Nodes\";" + 
 				"plot " + 
-				" 'data/" + sourceFileName + ".dat' using 1:14:15 title \"Map Meantime(32MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:52:53 title \"Map Meantime(64MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:90:91 title \"Map Meantime(128MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:28:29 title \"Reduce Meantime(32MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:66:67 title \"Reduce Meantime(64MB)\" w yerrorlines," + 
-				" 'data/" + sourceFileName + ".dat' using 1:104:105 title \"Reduce Meantime(128MB)\" w yerrorlines;";
+				" 'data/" + sourceFileName + ".dat' using 1:14:15 title \"Map Meantime - 32MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:52:53 title \"Map Meantime - 64MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:90:91 title \"Map Meantime - 128MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:28:29 title \"Reduce Meantime - 32MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:66:67 title \"Reduce Meantime - 64MB\" w yerrorlines," + 
+				" 'data/" + sourceFileName + ".dat' using 1:104:105 title \"Reduce Meantime - 128MB\" w yerrorlines;";
 		try {
 			ProcessBuilder process = new ProcessBuilder("gnuplot", "-e", strCommands);
 			process.directory(destPath);
@@ -1462,8 +1589,8 @@ public class ExecutionAnalyzer {
 	
 	public static void plotWaveLines(File destPath, String sourcePrefix, String destFileName, GraphParameters params) {
 		String strCommands = "reset;"  + 
-				"set terminal " + gnuplotTerminal + ";"  + 
-				"set output \"waves/" + destFileName + gnuplotOutType + "\";" + 
+				"set terminal " + gnuplotTerminal_waves + ";"  + 
+				"set output \"waves/" + destFileName + gnuplotOutType_waves + "\";" + 
 				"set yrange [" + params.getyMin() + ":" + params.getyMax() + "];" + 
 				"set xrange [" + params.getxMin() + ":" + params.getxMax() + "];" + 
 				"set ylabel \"Tasks\";" + "set xlabel \"Time(s)\";"  + 
@@ -1483,7 +1610,7 @@ public class ExecutionAnalyzer {
 		}
 	}
 
-	public static void plotCDF(Rengine r_engine, Histogram times, String resultPath, String dataPath, String fileName) throws IOException {
+	public static void plotECDF(Rengine r_engine, Histogram times, String resultPath, String dataPath, String fileName) throws IOException {
 		File resultDir = new File(dataPath);
 		resultDir.mkdirs();
 
@@ -1523,18 +1650,216 @@ public class ExecutionAnalyzer {
 		}
 	}
 
-	public static void plotMapNLECDF(Rengine r_engine, File resultPath, String dataPath, String fileName) throws IOException {
-		try {
-			r_engine.eval("setwd(\"" + resultPath + "/" + dataPath + "\")");
-			r_engine.eval("data <- read.table(\"" + fileName + ".dat\")");			
-			r_engine.eval("cdf <- ecdf(data$V1)");
-			r_engine.eval("setwd(\"" + resultPath + "\")");
-			r_engine.eval("png(\"" + fileName + ".png\")");
-			r_engine.eval("plot(cdf, main=\"Map Non-Locality\", xlab=\"Task Assignment (%)\", ylab=\"CDF\", xlim=c(0, 1), ylim=c(0, 1))");
-			r_engine.eval("dev.off()");
-		} catch (Exception e) {
-			e.printStackTrace();
+	public static void plotMapNLAssignmentECDF(Rengine r_engine, File resultPath, String dataPath, String destFileName, GraphParameters params) throws IOException {
+		
+		Map<Integer,String> sourcesMap = params.getSources();
+		Set<Integer> sourcesIds = sourcesMap.keySet();
+		
+//		data1 <- read.table("JxtaSocketPerfDriverMaxMapAssignmentECDF.dat")
+//		data2 <- read.table("JxtaSocketPerfDriverMaxMapDoneECDF.dat")
+//		data3 <- read.table("JxtaSocketPerfDriverMaxMapNLAssignmentECDF.dat")
+//		cdf1 <- ecdf(data1$V1)
+//		cdf2 <- ecdf(data2$V1)
+//		cdf3 <- ecdf(data3$V1)
+//		plot(cdf1, verticals=TRUE, do.p=FALSE,	main="ECDFs", xlab="Scores", ylab="Cumulative Percent",lty="dashed")
+//		lines(cdf2, verticals=TRUE, do.p=FALSE, col.h="blue", col.v="blue",lty="dotted")
+//		lines(cdf3, verticals=TRUE, do.p=FALSE, col.h="red", col.v="red",lty="dotted")
+		
+//		r_engine.eval
+		
+		int i = 1;
+		System.out.println("setwd(\"" + dataPath + "\")");		
+		for (Integer id : sourcesIds) {
+			System.out.println("data <- read.table(\"" + sourcesMap.get(id) + ".dat\")");
+			System.out.println("cdf" + i + " <- ecdf(data$V1)");	
+			i++;
 		}
+		System.out.println("setwd(\"" + resultPath + "\")");				
+		System.out.println("png(\"" + destFileName + ".png\")");
+		System.out.println("plot(cdf1, main=\"Map Tasks\", xlab=\"Total Map Phase Duration\", ylab=\"ECDF\", xlim=c(0, 1), ylim=c(0, 1), ,lty=\"dashed\")");
+		for (int j = 2; j < i; j++) {
+			System.out.println("lines(ecdf(cdf" + j + "), col.h=\"red\", col.v=\"red\",lty=\"dotted\")");
+		}
+		System.out.println("dev.off()");		
+	}
+	
+	public static String getTerminalCode(){
+		String strCommands = "set terminal " + gnuplotTerminal_std + ";" + "set encoding utf8;";
+		return strCommands;			
+	}
+	
+	public static void evaluateEc2(){
+		
+		DecimalFormat df2 = new DecimalFormat("#,###,###,##0.00");
+		DescriptiveStatistics jobRuntimeStats = new DescriptiveStatistics();
+		jobRuntimeStats.addValue(333);
+		jobRuntimeStats.addValue(319);
+		jobRuntimeStats.addValue(318);
+		jobRuntimeStats.addValue(319);
+		jobRuntimeStats.addValue(327);
+		jobRuntimeStats.addValue(321);
+		jobRuntimeStats.addValue(331);
+		jobRuntimeStats.addValue(322);
+		jobRuntimeStats.addValue(313);
+		jobRuntimeStats.addValue(312);
+		jobRuntimeStats.addValue(331);
+		jobRuntimeStats.addValue(321);
+		jobRuntimeStats.addValue(321);
+		jobRuntimeStats.addValue(322);
+		jobRuntimeStats.addValue(322);
+		jobRuntimeStats.addValue(322);
+		jobRuntimeStats.addValue(330);
+		jobRuntimeStats.addValue(324);
+		jobRuntimeStats.addValue(327);
+		jobRuntimeStats.addValue(323);
+		jobRuntimeStats.addValue(321);
+		jobRuntimeStats.addValue(325);
+		jobRuntimeStats.addValue(323);
+		jobRuntimeStats.addValue(321);
+		jobRuntimeStats.addValue(318);
+		jobRuntimeStats.addValue(320);
+		jobRuntimeStats.addValue(322);
+		jobRuntimeStats.addValue(317);
+		jobRuntimeStats.addValue(324);
+		jobRuntimeStats.addValue(327);
+		System.out.println(df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
+
+		df2 = new DecimalFormat("#,###,###,##0.00");
+		jobRuntimeStats = new DescriptiveStatistics();
+		jobRuntimeStats.addValue(262);
+		jobRuntimeStats.addValue(244);
+		jobRuntimeStats.addValue(237);
+		jobRuntimeStats.addValue(244);
+		jobRuntimeStats.addValue(245);
+		jobRuntimeStats.addValue(245);
+		jobRuntimeStats.addValue(246);
+		jobRuntimeStats.addValue(250);
+		jobRuntimeStats.addValue(246);
+		jobRuntimeStats.addValue(247);
+		jobRuntimeStats.addValue(243);
+		jobRuntimeStats.addValue(241);
+		jobRuntimeStats.addValue(243);
+		jobRuntimeStats.addValue(246);
+		jobRuntimeStats.addValue(250);
+		jobRuntimeStats.addValue(247);
+		jobRuntimeStats.addValue(246);
+		jobRuntimeStats.addValue(241);
+		jobRuntimeStats.addValue(243);
+		jobRuntimeStats.addValue(247);
+		jobRuntimeStats.addValue(249);
+		jobRuntimeStats.addValue(247);
+		jobRuntimeStats.addValue(246);
+		jobRuntimeStats.addValue(245);
+		jobRuntimeStats.addValue(255);
+		jobRuntimeStats.addValue(243);
+		jobRuntimeStats.addValue(243);
+		jobRuntimeStats.addValue(250);
+		jobRuntimeStats.addValue(241);
+		jobRuntimeStats.addValue(249);
+		System.out.println(df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
+
+		df2 = new DecimalFormat("#,###,###,##0.00");
+		jobRuntimeStats = new DescriptiveStatistics();
+		jobRuntimeStats.addValue(178);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(177);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(178);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(172);
+		jobRuntimeStats.addValue(170);
+		jobRuntimeStats.addValue(170);
+		jobRuntimeStats.addValue(176);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(176);
+		jobRuntimeStats.addValue(171);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(174);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(175);
+		jobRuntimeStats.addValue(168);
+		jobRuntimeStats.addValue(178);
+		System.out.println(df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
+
+		df2 = new DecimalFormat("#,###,###,##0.00");
+		jobRuntimeStats = new DescriptiveStatistics();
+		jobRuntimeStats.addValue(169);
+		jobRuntimeStats.addValue(147);
+		jobRuntimeStats.addValue(147);
+		jobRuntimeStats.addValue(154);
+		jobRuntimeStats.addValue(163);
+		jobRuntimeStats.addValue(147);
+		jobRuntimeStats.addValue(145);
+		jobRuntimeStats.addValue(159);
+		jobRuntimeStats.addValue(144);
+		jobRuntimeStats.addValue(145);
+		jobRuntimeStats.addValue(150);
+		jobRuntimeStats.addValue(150);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(144);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(150);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(144);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(150);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(151);
+		jobRuntimeStats.addValue(150);
+		jobRuntimeStats.addValue(148);
+		jobRuntimeStats.addValue(145);
+		jobRuntimeStats.addValue(159);
+		jobRuntimeStats.addValue(163);
+		jobRuntimeStats.addValue(162);
+		jobRuntimeStats.addValue(160);
+		System.out.println(df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
+
+		df2 = new DecimalFormat("#,###,###,##0.00");
+		jobRuntimeStats = new DescriptiveStatistics();
+		jobRuntimeStats.addValue(128);
+		jobRuntimeStats.addValue(130);
+		jobRuntimeStats.addValue(129);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(130);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(127);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(132);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(128);
+		jobRuntimeStats.addValue(128);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(144);
+		jobRuntimeStats.addValue(130);
+		jobRuntimeStats.addValue(123);
+		jobRuntimeStats.addValue(127);
+		jobRuntimeStats.addValue(127);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(121);
+		jobRuntimeStats.addValue(126);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(125);
+		jobRuntimeStats.addValue(123);
+		jobRuntimeStats.addValue(129);
+		jobRuntimeStats.addValue(127);	
+		System.out.println(df2.format(jobRuntimeStats.getMean()) + "\t" + df2.format(getConfidenceInterval(jobRuntimeStats)));
+		
 	}
 
 }
